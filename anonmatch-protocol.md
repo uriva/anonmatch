@@ -39,9 +39,7 @@ Mitigations:
 1. Some way to track how many likes peers have sent, and ignore some of their likes.
 1. Maybe a proof of work to make it unreasonable to send a large number of likes.
 
-
 ## Messages
 
-1. Relay with payload (onion protocol), callback
 1. Alice likes Bob message (shared secret of Alice and Bob)
-1. 
+1. Share profiles
