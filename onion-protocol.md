@@ -8,7 +8,7 @@ Prevent spamming using proof of work.
 type Route   = {
     head: PublicKey;
     tail: Encrypted<Route | null> // encrypted using head key
-    proof_of_work: ProofOfWork
+    proofOfWork: ProofOfWork
 }
 
 
@@ -22,7 +22,8 @@ type OnionMessage = {
 
 type MessageWithPOW = {
   payload: OnionMessage;
-  proofOfWork: ProofOfWork; // coupled with payload and recipient public key to prevent double spending
+  // coupled with payload and recipient public key to prevent double spending
+  proofOfWork: ProofOfWork;
 };
 
 const handleOnion =
