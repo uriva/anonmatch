@@ -1,19 +1,13 @@
-import pow from "npm:proof-of-work";
 import x from "npm:nostr-tools@1.2.1";
 
-type ProofOfWork = string;
+type Payment = string;
 
-const complexity = 16;
-
-const work = (data: string): ProofOfWork => {
-  return new pow.Solver().solve(complexity);
+const pay = (): Payment => {
+  return "payment";
 };
 
-const verifyWork = (nonce: ProofOfWork, data: string) => {
-  return new pow.Verifier({ complexity, size: 10, n: 10 }).check(
-    nonce,
-    complexity,
-  );
+const transactPayment = (payment: Payment) => {
+  return true;
 };
 
 const { generatePrivateKey, getPublicKey } = x;
@@ -25,8 +19,7 @@ type Route = {
   head: PublicKey;
   // encrypted using head key
   tail: Encrypted; // <Route | null>;
-  // coupled with tail string to prevent double spending (so it must go the path chosen)
-  proofOfWork: ProofOfWork;
+  payment: Payment;
 };
 
 type OnionMessage = {
@@ -37,14 +30,13 @@ type OnionMessage = {
 };
 
 const buildRoute =
-  (encrypt) =>
+  (encrypt, pay) =>
   ([head, ...tail]: PublicKey[]): Route | null => {
     if (!head) return null;
-    const encryptdTail = encrypt(head, buildRoute(tail));
     return {
-      proofOfWork: work(encryptdTail),
+      payment: pay(),
       head,
-      tail: encryptdTail,
+      tail: encrypt(head, buildRoute(encrypt, pay)(tail)),
     };
   };
 
@@ -56,16 +48,16 @@ export const handleOnion =
       return;
     }
     if (fwdRoute) {
-      const { head, tail, proofOfWork }: Route = decrypt(fwdRoute);
-      if (!verifyWork(tail, proofOfWork)) return;
+      const { head, tail, payment }: Route = decrypt(fwdRoute);
+      if (!transactPayment(payment)) return;
       send(head, {
         bwdRoute,
         fwdRoute: tail,
         request,
       });
     } else {
-      const { head, tail, proofOfWork }: Route = decrypt(bwdRoute);
-      if (!verifyWork(tail, proofOfWork)) return;
+      const { head, tail, payment }: Route = decrypt(bwdRoute);
+      if (!transactPayment(payment)) return;
       send(head, {
         bwdRoute: tail,
         response: response || process(request),
@@ -78,7 +70,7 @@ function last<Element>(arr: Element[]) {
 }
 
 export const wrapOnion =
-  (encrypt) =>
+  (encrypt, pay) =>
   (
     request: any,
     peersFwd: PublicKey[],
@@ -86,7 +78,7 @@ export const wrapOnion =
   ): OnionMessage => {
     return {
       request: encrypt(last(peersFwd), request),
-      fwdRoute: buildRoute(encrypt)(peersFwd),
-      bwdRoute: buildRoute(encrypt)(peersBwd),
+      fwdRoute: buildRoute(encrypt, pay)(peersFwd),
+      bwdRoute: buildRoute(encrypt, pay)(peersBwd),
     };
   };
