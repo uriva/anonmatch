@@ -1,7 +1,7 @@
 import nostrTools from "npm:nostr-tools";
 
 export const generatePrivateKey = nostrTools.generatePrivateKey;
-export const getPublicKey = nostrTools.generatePrivateKey;
+export const getPublicKey = nostrTools.getPublicKey;
 
 export type PublicKey = ReturnType<typeof getPublicKey>;
 export type SecretKey = ReturnType<typeof generatePrivateKey>;
@@ -24,6 +24,6 @@ export const encryptAnonymously = async (
 export const decryptAnonymously = (
   secret: SecretKey,
   { anonymousPublicKey, cipher }: AnonymousEncryption,
-): string => {
+): Promise<string> => {
   return nostrTools.nip04.decrypt(secret, anonymousPublicKey, cipher);
 };
