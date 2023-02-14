@@ -1,84 +1,93 @@
-import x from "npm:nostr-tools@1.2.1";
+import {
+  AnonymousEncryption,
+  PublicKey,
+  SecretKey,
+  decryptAnonymously,
+  encryptAnonymously,
+} from "./crypto.ts";
 
-type Payment = string;
-
-const pay = (): Payment => {
-  return "payment";
-};
-
-const transactPayment = (payment: Payment) => {
-  return true;
-};
-
-const { generatePrivateKey, getPublicKey } = x;
-type PrivateKey = ReturnType<typeof generatePrivateKey>;
-type PublicKey = ReturnType<typeof getPublicKey>;
-type Encrypted = string;
-
+export type Serializable =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Serializable[]
+  | { [key: string]: Serializable };
 type Route = {
   head: PublicKey;
   // encrypted using head key
-  tail: Encrypted; // <Route | null>;
-  payment: Payment;
+  tail: AnonymousEncryption; // <Route | null>;
 };
 
 type OnionMessage = {
   fwdRoute?: Route | null;
   bwdRoute?: Route | null;
-  response?: Encrypted; // <any>
-  request?: Encrypted; // <any>
+  response?: AnonymousEncryption; // <any>
+  request?: AnonymousEncryption; // <any>
 };
 
-const buildRoute =
-  (encrypt, pay) =>
-  ([head, ...tail]: PublicKey[]): Route | null => {
-    if (!head) return null;
-    return {
-      payment: pay(),
-      head,
-      tail: encrypt(head, buildRoute(encrypt, pay)(tail)),
-    };
-  };
+const buildRoute = async ([
+  head,
+  ...tail
+]: PublicKey[]): Promise<Route | null> => {
+  return head
+    ? {
+        head,
+        tail: await encryptAnonymously(
+          head,
+          JSON.stringify(await buildRoute(tail)),
+        ),
+      }
+    : null;
+};
 
 export const handleOnion =
-  (decrypt, send, process) =>
-  ({ fwdRoute, bwdRoute, request, response }: OnionMessage) => {
+  (
+    send: (pk: number, message: Serializable) => void,
+    process: (message: Serializable) => Serializable,
+    privateKey: SecretKey,
+  ) =>
+  async ({ fwdRoute, bwdRoute, request, response }: OnionMessage) => {
     if (!bwdRoute) {
-      process(response);
+      if (!response) {
+        console.error("expected a response");
+        return;
+      }
+      process(await decryptAnonymously(privateKey, response));
       return;
     }
     if (fwdRoute) {
-      const { head, tail, payment }: Route = decrypt(fwdRoute);
-      if (!transactPayment(payment)) return;
+      const { head, tail }: Route = fwdRoute;
       send(head, {
         bwdRoute,
-        fwdRoute: tail,
+        fwdRoute: await decryptAnonymously(privateKey, tail),
         request,
       });
     } else {
-      const { head, tail, payment }: Route = decrypt(bwdRoute);
-      if (!transactPayment(payment)) return;
+      const { head, tail }: Route = bwdRoute;
       send(head, {
-        bwdRoute: tail,
+        bwdRoute: await decryptAnonymously(privateKey, tail),
         response: response || process(request),
       });
     }
   };
 
-function last<Element>(arr: Element[]) {
-  return arr[arr.length - 1];
-}
-
-export const wrapOnion =
-  (encrypt, pay) =>
-  (
-    request: any,
-    peersFwd: PublicKey[],
-    peersBwd: PublicKey[],
-  ): OnionMessage => {
-    return {
-      request: encrypt(last(peersFwd), request),
-      fwdRoute: buildRoute(encrypt, pay)(peersFwd),
-      bwdRoute: buildRoute(encrypt, pay)(peersBwd),
-    };
+export const wrapOnion = async (
+  request: Serializable,
+  sender: PublicKey,
+  recipient: PublicKey,
+  proxiesFwd: PublicKey[],
+  proxiesBwd: PublicKey[],
+): Promise<OnionMessage> => {
+  const [requestStr, fwdRoute, bwdRoute] = await Promise.all([
+    encryptAnonymously(recipient, JSON.stringify(request)),
+    buildRoute([...proxiesFwd, recipient]),
+    buildRoute([...proxiesBwd, sender]),
+  ]);
+  return {
+    request: requestStr,
+    fwdRoute,
+    bwdRoute,
   };
+};

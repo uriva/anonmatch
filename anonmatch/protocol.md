@@ -22,7 +22,7 @@ Profiles are signed descriptions of peers with a timestamp. The latest profile i
 
 If Alice gets Bob's profile and she likes him, she can produce a secret shared to both of them (ECDH shared secret). She sends this secret through n proxies (onion routing style), to a designated intermediary between her and Bob.
 
-The designated intermediary, Carol, is defined as the user with public key closest to Alice x Bob public keys. Assuming most pers know most peers, Alice and Bob should agree on Carol's identity.
+The designated intermediary, Carol, is defined as the user with public key closest to `hash(app id, sharedSecret(Alice, Bob))` public keys. Assuming most peers know most peers, Alice and Bob should agree on Carol's identity.
 
 Carol receives the shared secret from two different proxies, and so declares a match. She does so by sending back through the onion relays the match fact. This eventually reaches Alice (and Bob), which at this point can communicate directly, knowing they both like each other.
 
@@ -43,3 +43,4 @@ Mitigations:
 
 1. Alice likes Bob message (shared secret of Alice and Bob)
 1. Share profiles
+1. Discover peers
