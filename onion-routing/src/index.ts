@@ -41,6 +41,10 @@ const buildRoute = async ([head, ...tail]: PublicKey[]): Promise<Route> => {
     : { head };
 };
 
+function log(x: any) {
+  console.log(x);
+  return x;
+}
 export const handleOnion =
   (
     send: (pk: number, message: Serializable) => void,
@@ -55,31 +59,39 @@ export const handleOnion =
     request,
     response,
   }: OnionMessage) => {
-    console.log("got message");
     if (!bwdRoute) {
       if (!response) {
         console.error("expected a response");
         return;
       }
-      process(
+      return process(
         await decryptAnonymously(getBurnerSecret(responsePublicKey), response),
       );
-      return;
     }
     if (fwdRoute) {
       const { head, tail }: Route = await decryptRoute(privateKey, fwdRoute);
-      console.log("decrypting");
-      send(head, {
+      return send(head, {
+        responsePublicKey,
         bwdRoute,
         fwdRoute: tail,
         request,
       });
-      console.log("ended");
     } else {
       const { head, tail }: Route = await decryptRoute(privateKey, bwdRoute);
-      send(head, {
+      return send(head, {
+        responsePublicKey,
         bwdRoute: tail,
-        response: response || process(request),
+        response:
+          response ||
+          (await encryptAnonymously(
+            responsePublicKey,
+            process(
+              await decryptAnonymously(
+                privateKey,
+                request as AnonymousEncryption,
+              ),
+            ),
+          )),
       });
     }
   };
@@ -93,7 +105,7 @@ export const wrapOnion = async (
 ): Promise<[SecretKey, OnionMessage]> => {
   const burner = generatePrivateKey();
   const [requestStr, fwdRoute, bwdRoute] = await Promise.all([
-    encryptAnonymously(recipient, JSON.stringify(request)),
+    encryptAnonymously(recipient, request),
     buildRoute([...proxiesFwd, recipient]),
     buildRoute([...proxiesBwd, sender]),
   ]);
