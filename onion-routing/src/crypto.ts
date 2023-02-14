@@ -1,5 +1,14 @@
 import nostrTools from "npm:nostr-tools";
 
+export type Serializable =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Serializable[]
+  | { [key: string]: Serializable };
+
 export const generatePrivateKey = nostrTools.generatePrivateKey;
 export const getPublicKey = nostrTools.getPublicKey;
 
@@ -12,18 +21,24 @@ export type AnonymousEncryption = {
 
 export const encryptAnonymously = async (
   recipient: PublicKey,
-  data: string,
+  data: Serializable,
 ): Promise<AnonymousEncryption> => {
   const privateKey = generatePrivateKey();
   return {
     anonymousPublicKey: getPublicKey(privateKey),
-    cipher: await nostrTools.nip04.encrypt(privateKey, recipient, data),
+    cipher: await nostrTools.nip04.encrypt(
+      privateKey,
+      recipient,
+      JSON.stringify(data),
+    ),
   };
 };
 
-export const decryptAnonymously = (
+export const decryptAnonymously = async (
   secret: SecretKey,
   { anonymousPublicKey, cipher }: AnonymousEncryption,
-): Promise<string> => {
-  return nostrTools.nip04.decrypt(secret, anonymousPublicKey, cipher);
+): Promise<Serializable> => {
+  return JSON.parse(
+    await nostrTools.nip04.decrypt(secret, anonymousPublicKey, cipher),
+  );
 };
