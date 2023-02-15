@@ -26,7 +26,9 @@ The designated intermediary, Carol, is defined as the user with public key close
 
 Carol receives the shared secret from two different proxies, and so declares a match. She does so by sending back through the onion relays the match fact. This eventually reaches Alice (and Bob), which at this point can communicate directly, knowing they both like each other.
 
-Carol has no way of finding Alice or Bob's identity. The relays can only know a match has occurred, but not who it was (The last relay doesn't know it is the last relay). Selecting different relays each time limit their ability to know how many matches Alice had in total.
+In order for Carol not be able to fake a message, Alice and Bob add to the shared secret an encrypted signature of the match, that can only be verified by the other side.
+
+Carol has no way of finding Alice or Bob's identity, nor can she fake a match. The relays can only know a match has occurred, but not who it was (The last relay doesn't know it is the last relay). Selecting different relays each time limit their ability to know how many matches Alice had in total.
 
 ## Attack vectors
 
