@@ -2,6 +2,8 @@ import { objectSize, union } from "../utils.ts";
 
 import { PublicKey } from "../onion-routing/src/crypto.ts";
 import { SecretKey } from "../onion-routing/src/crypto.ts";
+import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
+import { minBy } from "npm:gamla";
 import nostrTools from "npm:nostr-tools";
 
 type CallbackInfo = {};
@@ -56,6 +58,13 @@ export const createLikeMessage = (
   };
 };
 
+export const newState = (initialPeers): AnonMatchPeerState => ({
+  myMatches: [],
+  likesSent: {},
+  likesSeen: {},
+  peersKnown: initialPeers,
+});
+
 const makeMatchNotice = (
   matchId: MatchId,
   signature: EncryptedSignature,
@@ -65,8 +74,10 @@ const makeMatchNotice = (
 });
 
 export const handleMessage =
-  (me: SecretKey) =>
-  (send: (cb: CallbackInfo, message: AnonMatchMessage) => void) =>
+  (
+    me: SecretKey,
+    send: (cb: CallbackInfo, message: AnonMatchMessage) => void,
+  ) =>
   (state: AnonMatchPeerState) =>
   (message: AnonMatchMessage, callbackInfo: CallbackInfo) => {
     const { type } = message;
@@ -105,3 +116,9 @@ export const handleMessage =
         : state;
     }
   };
+
+export const closestMediator = (
+  peers: PublicKey[],
+  matchId: MatchId,
+): PublicKey =>
+  minBy((x: PublicKey) => levenshteinEditDistance(x, matchId))(peers);
