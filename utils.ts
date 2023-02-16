@@ -15,3 +15,9 @@ export const log = (x: any) => {
   console.log(x);
   return x;
 };
+
+export const objectSize = (obj: Record<string, unknown>) =>
+  Object.keys(obj).length;
+
+export const union = <T>(x: Array<T>, y: Array<T>): Array<T> =>
+  Array.from(new Set([...x, ...y]));

@@ -1,3 +1,5 @@
+import { objectSize, union } from "../utils.ts";
+
 import { PublicKey } from "../onion-routing/src/crypto.ts";
 import { SecretKey } from "../onion-routing/src/crypto.ts";
 import nostrTools from "npm:nostr-tools";
@@ -61,11 +63,6 @@ const makeMatchNotice = (
   type: "match-notice",
   like: { matchId, signature },
 });
-
-const objectSize = (obj: Record<string, unknown>) => Object.keys(obj).length;
-
-const union = <T>(x: Array<T>, y: Array<T>): Array<T> =>
-  Array.from(new Set([...x, ...y]));
 
 export const handleMessage =
   (me: SecretKey) =>
