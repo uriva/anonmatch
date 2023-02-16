@@ -1,5 +1,7 @@
 import { PublicKey } from "../onion-routing/src/crypto.ts";
 import { SecretKey } from "../onion-routing/src/crypto.ts";
+import nostrTools from "npm:nostr-tools";
+
 type CallbackInfo = {};
 type MatchId = string;
 type LikesSeen = { [_: MatchId]: { [_: EncryptedSignature]: CallbackInfo } };
@@ -25,16 +27,17 @@ const createLikeSignature = (
   liker: SecretKey,
   likee: PublicKey,
   matchId: MatchId,
-): EncryptedSignature => encrypt(likee, sign(liker, matchId));
+): EncryptedSignature => nostrTools.nip04.encrypt(liker, likee, matchId);
 
 const verifyLikeSignature = (
   likee: SecretKey,
   liker: PublicKey,
-  likeSignature: EncryptedSignature,
-) => verify(liker, decrypt(likee, likeSignature));
+  matchId: MatchId,
+  signature: EncryptedSignature,
+) => nostrTools.nip04.decrypt(likee, liker, signature) === matchId;
 
 const createMatchId = (source: SecretKey, target: PublicKey) =>
-  encrypt(source, target, "i like you");
+  nostrTools.nip04.encrypt(source, target, "i like you");
 
 export const createPeersNoticeMessage = (
   peers: PublicKey[],
@@ -60,6 +63,7 @@ const makeMatchNotice = (
   type: "match-notice",
   like: { matchId, signature },
 });
+
 const objectSize = (obj: Record<string, unknown>) => Object.keys(obj).length;
 
 const union = <T>(x: Array<T>, y: Array<T>): Array<T> =>
@@ -96,7 +100,12 @@ export const handleMessage =
       const {
         like: { matchId, signature },
       } = message;
-      return verifyLikeSignature(me, state.likesSent[matchId], signature)
+      return verifyLikeSignature(
+        me,
+        state.likesSent[matchId],
+        matchId,
+        signature,
+      )
         ? { ...state, myMatches: union(state.myMatches, [matchId]) }
         : state;
     }
