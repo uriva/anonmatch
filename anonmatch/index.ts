@@ -41,9 +41,7 @@ const createMatchId = (source: SecretKey, target: PublicKey) =>
 
 export const createPeersNoticeMessage = (
   peers: PublicKey[],
-): PeersNoticeMessage => {
-  return { type: "peers-notice", peers };
-};
+): PeersNoticeMessage => ({ type: "peers-notice", peers });
 
 export const createLikeMessage = (
   source: SecretKey,

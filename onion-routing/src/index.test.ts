@@ -6,22 +6,9 @@ import {
   generatePrivateKey,
   getPublicKey,
 } from "./crypto.ts";
+import { range, sample } from "../../utils.ts";
 
 import { assertEquals } from "https://deno.land/std@0.174.0/testing/asserts.ts";
-
-const range = (n: number) => {
-  const result = [];
-  for (let i = 0; i < n; i++) result.push(i);
-  return result;
-};
-
-function last<Element>(arr: Element[]) {
-  return arr[arr.length - 1];
-}
-
-function sample<T>(n: number, array: Array<T>) {
-  return array.sort(() => 0.5 - Math.random()).slice(0, n);
-}
 
 Deno.test("test ping pong", async () => {
   const allPeers = range(10).map(() => generatePrivateKey());

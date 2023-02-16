@@ -41,10 +41,6 @@ const buildRoute = async ([head, ...tail]: PublicKey[]): Promise<Route> => {
     : { head };
 };
 
-function log(x: any) {
-  console.log(x);
-  return x;
-}
 export const handleOnion =
   (
     send: (pk: number, message: Serializable) => void,
