@@ -6,12 +6,12 @@ import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
 import { minBy } from "npm:gamla";
 import nostrTools from "npm:nostr-tools";
 
-type CallbackInfo = {};
+export type CallbackInfo = {};
 type MatchId = string;
-type LikesSeen = { [_: MatchId]: { [_: EncryptedSignature]: CallbackInfo } };
-type AnonMatchPeerState = {
+type LikesSeen = Record<MatchId, Record<EncryptedSignature, CallbackInfo>>;
+export type AnonMatchPeerState = {
   myMatches: Array<PublicKey>;
-  likesSent: { [_: MatchId]: PublicKey };
+  likesSent: Record<MatchId, PublicKey>;
   likesSeen: LikesSeen;
   peersKnown: Array<PublicKey>;
 };
@@ -25,7 +25,7 @@ type SignedLike = {
 type LikeMessage = { type: "like"; like: SignedLike };
 type MatchNoticeMessage = { type: "match-notice"; like: SignedLike };
 
-type AnonMatchMessage = PeersNoticeMessage | LikeMessage | MatchNoticeMessage;
+export type AnonMatchMessage = PeersNoticeMessage | LikeMessage | MatchNoticeMessage;
 
 const createLikeSignature = (
   liker: SecretKey,
@@ -58,7 +58,7 @@ export const createLikeMessage = (
   };
 };
 
-export const newState = (initialPeers): AnonMatchPeerState => ({
+export const newState = (initialPeers: PublicKey[]): AnonMatchPeerState => ({
   myMatches: [],
   likesSent: {},
   likesSeen: {},
@@ -115,6 +115,7 @@ export const handleMessage =
         ? { ...state, myMatches: union(state.myMatches, [matchId]) }
         : state;
     }
+    return state;
   };
 
 export const closestMediator = (
