@@ -53,3 +53,20 @@ export const minBy =
     );
     return x[1];
   };
+
+export const permutations = <T>(arr: T[]): T[][] => {
+  if (arr.length <= 2)
+    return arr.length === 2 ? [arr, [arr[1], arr[0]]] : [arr];
+  const enumerated: [T, number][] = arr.map((x, i) => [x, i]);
+  return reduce(
+    (acc: T[][], [item, i]: [T, number]): T[][] =>
+      acc.concat(
+        permutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map((val) => [
+          item,
+          ...val,
+        ]),
+      ),
+    [],
+    enumerated,
+  );
+};

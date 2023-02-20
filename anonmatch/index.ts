@@ -90,18 +90,17 @@ export const createLikeMessage = async (
 
 const toMatchNoticeMessage = (
   matchId: MatchId,
-  [like1, like2]: [
-    [EncryptedSignature, [CallbackInfo, SelfEncryptedLikee]],
-    [EncryptedSignature, [CallbackInfo, SelfEncryptedLikee]],
-  ],
+  signatureToCallbackInfo: Record<
+    EncryptedSignature,
+    [CallbackInfo, SelfEncryptedLikee]
+  >,
 ) =>
-  [
-    [like1, like2],
-    [like2, like1],
-  ].map(([[signature, [callback]], [[, [_, encryptedLikee]]]]) => [
-    callback,
-    makeMatchNotice(matchId, encryptedLikee, signature),
-  ]);
+  permutations(Object.entries(signatureToCallbackInfo)).map(
+    ([[signature, [callback]], [[, [_, encryptedLikee]]]]) => [
+      callback,
+      makeMatchNotice(matchId, encryptedLikee, signature),
+    ],
+  );
 
 export const newState = (initialPeers: PublicKey[]): AnonMatchPeerState => ({
   myMatches: [],
@@ -147,7 +146,7 @@ export const handleMessage =
       return [
         { ...state, likesSeen },
         objectSize(likesSeen[matchId]) === 2
-          ? toMatchNoticeMessage(matchId, Object.entries(likesSeen[matchId]))
+          ? toMatchNoticeMessage(matchId, likesSeen[matchId])
           : [],
       ];
     }
