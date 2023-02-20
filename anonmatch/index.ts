@@ -4,10 +4,9 @@ import {
   sign,
   verify,
 } from "../onion-routing/src/crypto.ts";
+import { SecretKey, getPublicKey } from "../onion-routing/src/crypto.ts";
 import { log, minBy, objectSize, union } from "../utils.ts";
 
-import { SecretKey } from "../onion-routing/src/crypto.ts";
-import { getPublicKey } from "../../../.cache/deno/npm/registry.npmjs.org/@noble/secp256k1/1.7.1/lib/index.d.ts";
 import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
 import nostrTools from "npm:nostr-tools";
 
@@ -81,7 +80,11 @@ export const createLikeMessage = async (
   return {
     type: "like",
     like: {
-      likee: nostrTools.nip04.encrypt(source, getPublicKey(source), target),
+      likee: await nostrTools.nip04.encrypt(
+        source,
+        getPublicKey(source),
+        target,
+      ),
       matchId,
       signature: await createLikeSignature(source, target, matchId),
     },
