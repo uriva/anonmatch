@@ -1,4 +1,4 @@
-import { minBy, objectSize, union } from "../utils.ts";
+import { log, minBy, objectSize, union } from "../utils.ts";
 
 import { PublicKey } from "../onion-routing/src/crypto.ts";
 import { SecretKey } from "../onion-routing/src/crypto.ts";
@@ -33,7 +33,8 @@ const createLikeSignature = (
   liker: SecretKey,
   likee: PublicKey,
   matchId: MatchId,
-): EncryptedSignature => nostrTools.nip04.encrypt(liker, likee, matchId);
+): Promise<EncryptedSignature> =>
+  nostrTools.nip04.encrypt(liker, likee, matchId);
 
 const verifyLikeSignature = async (
   likee: SecretKey,
@@ -42,8 +43,10 @@ const verifyLikeSignature = async (
   signature: EncryptedSignature,
 ) => (await nostrTools.nip04.decrypt(likee, liker, signature)) === matchId;
 
-const createMatchId = (source: SecretKey, target: PublicKey) =>
-  nostrTools.nip04.encrypt(source, target, "i like you");
+const createMatchId = (
+  source: SecretKey,
+  target: PublicKey,
+): Promise<MatchId> => nostrTools.nip04.encrypt(source, target, "i like you");
 
 export const createPeersNoticeMessage = (
   peers: PublicKey[],
@@ -53,7 +56,7 @@ export const createLikeMessage = async (
   source: SecretKey,
   target: PublicKey,
 ): Promise<LikeMessage> => {
-  const matchId = createMatchId(source, target);
+  const matchId = await createMatchId(source, target);
   return {
     type: "like",
     like: {
