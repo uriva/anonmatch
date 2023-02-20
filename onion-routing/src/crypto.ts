@@ -1,6 +1,5 @@
-import * as secp256k1 from "npm:@noble/secp256k1";
-
 import { base64 } from "npm:@scure/base";
+import { getSharedSecret } from "npm:@noble/secp256k1";
 import nostrTools from "npm:nostr-tools";
 
 export type Serializable =
@@ -35,7 +34,7 @@ export const encryptStable = async (
         { name: "AES-CBC", iv },
         await crypto.subtle.importKey(
           "raw",
-          secp256k1.getSharedSecret(privkey, "02" + pubkey).slice(1, 33),
+          getSharedSecret(privkey, "02" + pubkey).slice(1, 33),
           { name: "AES-CBC" },
           false,
           ["encrypt"],
