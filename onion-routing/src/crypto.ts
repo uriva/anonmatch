@@ -2,7 +2,6 @@ import * as secp256k1 from "npm:@noble/secp256k1";
 
 import { base64 } from "npm:@scure/base";
 import nostrTools from "npm:nostr-tools";
-import { randomBytes } from "npm:@noble/hashes/utils";
 
 export type Serializable =
   | string
