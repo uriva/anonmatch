@@ -1,6 +1,11 @@
+import {
+  PublicKey,
+  encryptStable,
+  sign,
+  verify,
+} from "../onion-routing/src/crypto.ts";
 import { log, minBy, objectSize, union } from "../utils.ts";
 
-import { PublicKey } from "../onion-routing/src/crypto.ts";
 import { SecretKey } from "../onion-routing/src/crypto.ts";
 import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
 import nostrTools from "npm:nostr-tools";
@@ -29,24 +34,35 @@ export type AnonMatchMessage =
   | LikeMessage
   | MatchNoticeMessage;
 
-const createLikeSignature = (
+const createLikeSignature = async (
   liker: SecretKey,
   likee: PublicKey,
   matchId: MatchId,
 ): Promise<EncryptedSignature> =>
-  nostrTools.nip04.encrypt(liker, likee, matchId);
+  nostrTools.nip04.encrypt(liker, likee, await sign(liker, matchId));
 
 const verifyLikeSignature = async (
   likee: SecretKey,
   liker: PublicKey,
   matchId: MatchId,
   signature: EncryptedSignature,
-) => (await nostrTools.nip04.decrypt(likee, liker, signature)) === matchId;
+): Promise<boolean> =>
+  verify(
+    await nostrTools.nip04.decrypt(likee, liker, signature),
+    liker,
+    matchId,
+  );
 
 const createMatchId = (
   source: SecretKey,
   target: PublicKey,
-): Promise<MatchId> => nostrTools.nip04.encrypt(source, target, "i like you");
+): Promise<MatchId> =>
+  encryptStable(
+    source,
+    target,
+    "i like you",
+    new TextEncoder().encode("anonmatch1111111"),
+  );
 
 export const createPeersNoticeMessage = (
   peers: PublicKey[],
