@@ -31,24 +31,6 @@ Deno.test("simple match", async () => {
     peers.map((x) => [getPublicKey(x), x]),
   );
   const [alice, bob]: SecretKey[] = peers;
-  const states: Record<SecretKey, AnonMatchPeerState> = Object.fromEntries(
-    peers.map((secret) => [secret, newState(peers)]),
-  );
-  const send = (cbInfo: CallbackInfo, message: AnonMatchMessage) => {
-    handlers[publicToPrivate[cbInfoToPeer(cbInfo)]](cbInfo, message);
-  };
-  const handlers = Object.fromEntries(
-    peers.map((secret: SecretKey) => [
-      secret,
-      async (cbInfo: CallbackInfo, message: AnonMatchMessage) => {
-        states[secret] = await handleMessage(secret, send)(states[secret])(
-          message,
-          cbInfo,
-        );
-      },
-    ]),
-  );
-
   const [aliceLikesBob, bobLikesAlice] = await Promise.all(
     [
       [alice, bob],
@@ -57,14 +39,29 @@ Deno.test("simple match", async () => {
       createLikeMessage(likerSecret, getPublicKey(likeeSecret)),
     ),
   );
-
   assertEquals(aliceLikesBob.like.matchId, bobLikesAlice.like.matchId);
   const matchId = aliceLikesBob.like.matchId;
   // Establish carol's identity (could be done either by alice or bob).
   const carolPk = closestMediator(peers.map(getPublicKey), matchId);
+  const queue: [CallbackInfo, AnonMatchMessage][] = [
+    [carolPk, aliceLikesBob],
+    [carolPk, bobLikesAlice],
+  ];
 
-  send(carolPk, aliceLikesBob);
-  send(carolPk, bobLikesAlice);
+  let states: Record<SecretKey, AnonMatchPeerState> = Object.fromEntries(
+    peers.map((secret) => [secret, newState(peers)]),
+  );
+  while (true) {
+    const current = queue.pop();
+    if (!current) break;
+    const [cbInfo, message]: [CallbackInfo, AnonMatchMessage] = current;
+    const secret = publicToPrivate[cbInfoToPeer(cbInfo)];
+    const [newState, messagesToSend] = await handleMessage(secret)(
+      states[secret],
+    )(message, cbInfo);
+    messagesToSend.forEach((m) => queue.push(m));
+    states = { ...states, [secret]: newState };
+  }
 
   assert(matchedWith(alice, states[bob]));
   assert(matchedWith(bob, states[alice]));

@@ -98,15 +98,18 @@ const makeMatchNotice = (
 });
 
 export const handleMessage =
-  (
-    me: SecretKey,
-    send: (cb: CallbackInfo, message: AnonMatchMessage) => void,
-  ) =>
+  (me: SecretKey) =>
   (state: AnonMatchPeerState) =>
-  async (message: AnonMatchMessage, callbackInfo: CallbackInfo) => {
+  async (
+    message: AnonMatchMessage,
+    callbackInfo: CallbackInfo,
+  ): Promise<[AnonMatchPeerState, [CallbackInfo, MatchNoticeMessage][]]> => {
     const { type } = message;
     if (type === "peers-notice") {
-      return { ...state, peersKnown: union(state.peersKnown, message.peers) };
+      return [
+        { ...state, peersKnown: union(state.peersKnown, message.peers) },
+        [],
+      ];
     }
     if (type === "like") {
       const {
@@ -114,32 +117,33 @@ export const handleMessage =
       } = message;
       // Register the like.
       const likesSeen: LikesSeen = {
-        ...state.likesSeen,
+        ...log(state).likesSeen,
         [matchId]: { ...state.likesSeen[matchId], [signature]: callbackInfo },
       };
+      const newState = { ...state, likesSeen };
       if (objectSize(likesSeen[matchId]) === 2) {
         for (const [signature, callback] of Object.entries(likesSeen[matchId]))
-          send(callback, makeMatchNotice(matchId, signature));
+          [newState, [callback, makeMatchNotice(matchId, signature)]];
       }
-      return {
-        ...state,
-        likesSeen,
-      };
+      return [log(newState), []];
     }
     if (type === "match-notice") {
       const {
         like: { matchId, signature },
       } = message;
-      return (await verifyLikeSignature(
-        me,
-        state.likesSent[matchId],
-        matchId,
-        signature,
-      ))
-        ? { ...state, myMatches: union(state.myMatches, [matchId]) }
-        : state;
+      return [
+        (await verifyLikeSignature(
+          me,
+          state.likesSent[matchId],
+          matchId,
+          signature,
+        ))
+          ? { ...state, myMatches: union(state.myMatches, [matchId]) }
+          : state,
+        [],
+      ];
     }
-    return state;
+    return [state, []];
   };
 
 export const closestMediator = (
