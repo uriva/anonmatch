@@ -55,6 +55,7 @@ Deno.test("simple match", async () => {
     const current = queue.pop();
     if (!current) break;
     const [cbInfo, message]: [CallbackInfo, AnonMatchMessage] = current;
+    console.log("procssing message", message);
     const secret = publicToPrivate[cbInfoToPeer(cbInfo)];
     const [newState, messagesToSend] = await handleMessage(secret)(
       states[secret],

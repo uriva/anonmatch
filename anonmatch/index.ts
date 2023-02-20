@@ -117,15 +117,18 @@ export const handleMessage =
       } = message;
       // Register the like.
       const likesSeen: LikesSeen = {
-        ...log(state).likesSeen,
+        ...state.likesSeen,
         [matchId]: { ...state.likesSeen[matchId], [signature]: callbackInfo },
       };
-      const newState = { ...state, likesSeen };
-      if (objectSize(likesSeen[matchId]) === 2) {
-        for (const [signature, callback] of Object.entries(likesSeen[matchId]))
-          [newState, [callback, makeMatchNotice(matchId, signature)]];
-      }
-      return [log(newState), []];
+      return [
+        { ...state, likesSeen },
+        objectSize(likesSeen[matchId]) === 2
+          ? Object.entries(likesSeen[matchId]).map(([signature, callback]) => [
+              callback,
+              makeMatchNotice(matchId, signature),
+            ])
+          : [],
+      ];
     }
     if (type === "match-notice") {
       const {
