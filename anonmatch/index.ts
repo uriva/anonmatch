@@ -7,22 +7,27 @@ import {
 import { log, minBy, objectSize, union } from "../utils.ts";
 
 import { SecretKey } from "../onion-routing/src/crypto.ts";
+import { getPublicKey } from "../../../.cache/deno/npm/registry.npmjs.org/@noble/secp256k1/1.7.1/lib/index.d.ts";
 import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
 import nostrTools from "npm:nostr-tools";
 
 export type CallbackInfo = {};
 type MatchId = string;
-type LikesSeen = Record<MatchId, Record<EncryptedSignature, CallbackInfo>>;
+type LikesSeen = Record<
+  MatchId,
+  Record<EncryptedSignature, [CallbackInfo, SelfEncryptedLikee]>
+>;
 export type AnonMatchPeerState = {
   myMatches: Array<PublicKey>;
-  likesSent: Record<MatchId, PublicKey>;
   likesSeen: LikesSeen;
   peersKnown: Array<PublicKey>;
 };
 
 type PeersNoticeMessage = { type: "peers-notice"; peers: PublicKey[] };
 type EncryptedSignature = string;
+type SelfEncryptedLikee = string;
 type SignedLike = {
+  likee: SelfEncryptedLikee;
   signature: EncryptedSignature;
   matchId: MatchId;
 };
@@ -76,25 +81,41 @@ export const createLikeMessage = async (
   return {
     type: "like",
     like: {
+      likee: nostrTools.nip04.encrypt(source, getPublicKey(source), target),
       matchId,
       signature: await createLikeSignature(source, target, matchId),
     },
   };
 };
 
+const toMatchNoticeMessage = (
+  matchId: MatchId,
+  [like1, like2]: [
+    [EncryptedSignature, [CallbackInfo, SelfEncryptedLikee]],
+    [EncryptedSignature, [CallbackInfo, SelfEncryptedLikee]],
+  ],
+) =>
+  [
+    [like1, like2],
+    [like2, like1],
+  ].map(([[signature, [callback]], [[, [_, encryptedLikee]]]]) => [
+    callback,
+    makeMatchNotice(matchId, encryptedLikee, signature),
+  ]);
+
 export const newState = (initialPeers: PublicKey[]): AnonMatchPeerState => ({
   myMatches: [],
-  likesSent: {},
   likesSeen: {},
   peersKnown: initialPeers,
 });
 
 const makeMatchNotice = (
   matchId: MatchId,
+  likee: string,
   signature: EncryptedSignature,
 ): MatchNoticeMessage => ({
   type: "match-notice",
-  like: { matchId, signature },
+  like: { likee, matchId, signature },
 });
 
 export const handleMessage =
@@ -113,31 +134,31 @@ export const handleMessage =
     }
     if (type === "like") {
       const {
-        like: { signature, matchId },
+        like: { signature, matchId, likee },
       } = message;
       // Register the like.
       const likesSeen: LikesSeen = {
         ...state.likesSeen,
-        [matchId]: { ...state.likesSeen[matchId], [signature]: callbackInfo },
+        [matchId]: {
+          ...state.likesSeen[matchId],
+          [signature]: [callbackInfo, likee],
+        },
       };
       return [
         { ...state, likesSeen },
         objectSize(likesSeen[matchId]) === 2
-          ? Object.entries(likesSeen[matchId]).map(([signature, callback]) => [
-              callback,
-              makeMatchNotice(matchId, signature),
-            ])
+          ? toMatchNoticeMessage(matchId, Object.entries(likesSeen[matchId]))
           : [],
       ];
     }
     if (type === "match-notice") {
       const {
-        like: { matchId, signature },
+        like: { matchId, signature, likee },
       } = message;
       return [
         (await verifyLikeSignature(
           me,
-          state.likesSent[matchId],
+          await nostrTools.nip04.decrypt(me, getPublicKey(me), likee),
           matchId,
           signature,
         ))
