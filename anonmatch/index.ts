@@ -158,11 +158,13 @@ export const handleMessage =
       const {
         like: { matchId, signature, likee },
       } = message;
-      console.log("try dcrypt");
-      const likeePubKey = await decryptAnonymously(me, likee);
-      console.log("decrypted", likeePubKey);
       return [
-        (await verifyLikeSignature(me, likeePubKey, matchId, signature))
+        (await verifyLikeSignature(
+          me,
+          await decryptAnonymously(me, likee),
+          matchId,
+          signature,
+        ))
           ? { ...state, myMatches: union(state.myMatches, [matchId]) }
           : state,
         [],

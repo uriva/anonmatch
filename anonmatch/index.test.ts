@@ -43,9 +43,9 @@ Deno.test("simple match", async () => {
   const matchId = aliceLikesBob.like.matchId;
   // Establish carol's identity (could be done either by alice or bob).
   const carolPk = closestMediator(peers.map(getPublicKey), matchId);
-  const queue: [CallbackInfo, AnonMatchMessage][] = [
-    [carolPk, aliceLikesBob],
-    [carolPk, bobLikesAlice],
+  const queue: [CallbackInfo, PublicKey, AnonMatchMessage][] = [
+    [getPublicKey(alice), carolPk, aliceLikesBob],
+    [getPublicKey(bob), carolPk, bobLikesAlice],
   ];
 
   let states: Record<SecretKey, AnonMatchPeerState> = Object.fromEntries(
@@ -54,14 +54,14 @@ Deno.test("simple match", async () => {
   while (true) {
     const current = queue.pop();
     if (!current) break;
-    const [cbInfo, message]: [CallbackInfo, AnonMatchMessage] = current;
-    console.log("procssing message", message);
-    const secret = publicToPrivate[cbInfoToPeer(cbInfo)];
+    const [sourceCbInfo, targetPk, message] = current;
+    const secret = publicToPrivate[targetPk];
     const [newState, messagesToSend] = await handleMessage(secret)(
       states[secret],
-    )(message, cbInfo);
-    console.log("finished processing");
-    messagesToSend.forEach((m) => queue.push(m));
+    )(message, sourceCbInfo);
+    messagesToSend.forEach(([cbInfo, message]) =>
+      queue.push([sourceCbInfo, cbInfoToPeer(cbInfo), message]),
+    );
     states = { ...states, [secret]: newState };
   }
 
