@@ -8,10 +8,10 @@ import {
   newState,
 } from "./index.ts";
 import {
-  PublicKey,
-  SecretKey,
   generatePrivateKey,
   getPublicKey,
+  PublicKey,
+  SecretKey,
 } from "../onion-routing/src/crypto.ts";
 import {
   assert,
@@ -36,7 +36,7 @@ Deno.test("simple match", async () => {
       [alice, bob],
       [bob, alice],
     ].map(([likerSecret, likeeSecret]) =>
-      createLikeMessage(likerSecret, getPublicKey(likeeSecret)),
+      createLikeMessage(likerSecret, getPublicKey(likeeSecret))
     ),
   );
   assertEquals(aliceLikesBob.like.matchId, bobLikesAlice.like.matchId);
@@ -60,7 +60,7 @@ Deno.test("simple match", async () => {
       states[secret],
     )(message, sourceCbInfo);
     messagesToSend.forEach(([cbInfo, message]) =>
-      queue.push([sourceCbInfo, cbInfoToPeer(cbInfo), message]),
+      queue.push([sourceCbInfo, cbInfoToPeer(cbInfo), message])
     );
     states = { ...states, [secret]: newState };
   }

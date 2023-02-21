@@ -30,21 +30,23 @@ export const encryptStable = async (
   text: string,
   iv: Uint8Array, // length 16,
 ) =>
-  `${base64.encode(
-    new Uint8Array(
-      await crypto.subtle.encrypt(
-        { name: "AES-CBC", iv },
-        await crypto.subtle.importKey(
-          "raw",
-          getSharedSecret(privkey, "02" + pubkey).slice(1, 33),
-          { name: "AES-CBC" },
-          false,
-          ["encrypt"],
+  `${
+    base64.encode(
+      new Uint8Array(
+        await crypto.subtle.encrypt(
+          { name: "AES-CBC", iv },
+          await crypto.subtle.importKey(
+            "raw",
+            getSharedSecret(privkey, "02" + pubkey).slice(1, 33),
+            { name: "AES-CBC" },
+            false,
+            ["encrypt"],
+          ),
+          new TextEncoder().encode(text),
         ),
-        new TextEncoder().encode(text),
       ),
-    ),
-  )}?iv=${base64.encode(new Uint8Array(iv.buffer))}`;
+    )
+  }?iv=${base64.encode(new Uint8Array(iv.buffer))}`;
 
 export const encryptAnonymously = async (
   recipient: PublicKey,
@@ -75,7 +77,7 @@ export const sign = (secret: SecretKey, message: string): Signature =>
 export const verify = (
   publicKey: PublicKey,
   signature: Signature,
-  message: string
+  message: string,
 ) => schnorr.verifySync(signature, stringEncode(message), publicKey);
 
 const stringEncode = (str: string): Uint8Array => new TextEncoder().encode(str);
