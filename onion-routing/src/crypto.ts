@@ -1,6 +1,8 @@
 import { base64 } from "npm:@scure/base";
-import { getSharedSecret } from "npm:@noble/secp256k1";
+import { getSharedSecret, schnorr, utils } from "npm:@noble/secp256k1";
 import nostrTools from "npm:nostr-tools";
+
+import "./monkey_patch_secp256k1.ts";
 
 export type Serializable =
   | string
@@ -67,13 +69,13 @@ export const decryptAnonymously = async (
     await nostrTools.nip04.decrypt(secret, anonymousPublicKey, cipher),
   );
 
-// TODO: implement
 export const sign = (secret: SecretKey, message: string): Signature =>
-  message + getPublicKey(secret);
+  utils.bytesToHex(schnorr.signSync(stringEncode(message), secret));
 
-// TODO: implement
 export const verify = (
   publicKey: PublicKey,
   signature: Signature,
-  message: string,
-) => message + publicKey === signature;
+  message: string
+) => schnorr.verifySync(signature, stringEncode(message), publicKey);
+
+const stringEncode = (str: string): Uint8Array => new TextEncoder().encode(str);
