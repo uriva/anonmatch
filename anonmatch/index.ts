@@ -55,8 +55,8 @@ const verifyLikeSignature = async (
   signature: EncryptedSignature,
 ): Promise<boolean> =>
   verify(
-    await nostrTools.nip04.decrypt(likee, liker, signature),
     liker,
+    await nostrTools.nip04.decrypt(likee, liker, signature),
     matchId,
   );
 
@@ -158,14 +158,13 @@ export const handleMessage =
       const {
         like: { matchId, signature, likee },
       } = message;
+      const matchedWith = await decryptAnonymously(me, likee);
       return [
-        (await verifyLikeSignature(
-          me,
-          await decryptAnonymously(me, likee),
-          matchId,
-          signature,
-        ))
-          ? { ...state, myMatches: union(state.myMatches, [matchId]) }
+        (await verifyLikeSignature(me, matchedWith, matchId, signature))
+          ? {
+              ...state,
+              myMatches: union(state.myMatches, [matchedWith]),
+            }
           : state,
         [],
       ];
