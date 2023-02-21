@@ -62,11 +62,10 @@ export const encryptAnonymously = async (
 export const decryptAnonymously = async (
   secret: SecretKey,
   { anonymousPublicKey, cipher }: AnonymousEncryption,
-): Promise<Serializable> => {
-  return JSON.parse(
+): Promise<Serializable> =>
+  JSON.parse(
     await nostrTools.nip04.decrypt(secret, anonymousPublicKey, cipher),
   );
-};
 
 // TODO: implement
 export const sign = (secret: SecretKey, message: string): Signature =>

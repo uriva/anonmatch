@@ -60,6 +60,7 @@ Deno.test("simple match", async () => {
     const [newState, messagesToSend] = await handleMessage(secret)(
       states[secret],
     )(message, cbInfo);
+    console.log("finished processing");
     messagesToSend.forEach((m) => queue.push(m));
     states = { ...states, [secret]: newState };
   }

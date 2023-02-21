@@ -1,5 +1,8 @@
 import {
+  AnonymousEncryption,
   PublicKey,
+  decryptAnonymously,
+  encryptAnonymously,
   encryptStable,
   sign,
   verify,
@@ -24,7 +27,7 @@ export type AnonMatchPeerState = {
 
 type PeersNoticeMessage = { type: "peers-notice"; peers: PublicKey[] };
 type EncryptedSignature = string;
-type SelfEncryptedLikee = string;
+type SelfEncryptedLikee = AnonymousEncryption;
 type SignedLike = {
   likee: SelfEncryptedLikee;
   signature: EncryptedSignature;
@@ -80,11 +83,7 @@ export const createLikeMessage = async (
   return {
     type: "like",
     like: {
-      likee: await nostrTools.nip04.encrypt(
-        source,
-        getPublicKey(source),
-        target,
-      ),
+      likee: await encryptAnonymously(getPublicKey(source), target),
       matchId,
       signature: await createLikeSignature(source, target, matchId),
     },
@@ -115,7 +114,7 @@ export const newState = (initialPeers: PublicKey[]): AnonMatchPeerState => ({
 
 const makeMatchNotice = (
   matchId: MatchId,
-  likee: string,
+  likee: SelfEncryptedLikee,
   signature: EncryptedSignature,
 ): MatchNoticeMessage => ({
   type: "match-notice",
@@ -148,9 +147,8 @@ export const handleMessage =
           [signature]: [callbackInfo, likee],
         },
       };
-      const newS = { ...state, likesSeen };
       return [
-        newS,
+        { ...state, likesSeen },
         objectSize(likesSeen[matchId]) === 2
           ? toMatchNoticeMessage(matchId, Object.entries(likesSeen[matchId]))
           : [],
@@ -160,13 +158,11 @@ export const handleMessage =
       const {
         like: { matchId, signature, likee },
       } = message;
+      console.log("try dcrypt");
+      const likeePubKey = await decryptAnonymously(me, likee);
+      console.log("decrypted", likeePubKey);
       return [
-        (await verifyLikeSignature(
-          me,
-          await nostrTools.nip04.decrypt(me, getPublicKey(me), likee),
-          matchId,
-          signature,
-        ))
+        (await verifyLikeSignature(me, likeePubKey, matchId, signature))
           ? { ...state, myMatches: union(state.myMatches, [matchId]) }
           : state,
         [],
