@@ -1,6 +1,8 @@
 import { base64 } from "npm:@scure/base";
-import { getSharedSecret } from "npm:@noble/secp256k1";
+import { getSharedSecret, schnorr, utils } from "npm:@noble/secp256k1";
 import nostrTools from "npm:nostr-tools";
+
+import "./monkey_patch_secp256k1.ts";
 
 export type Serializable =
   | string
@@ -28,21 +30,23 @@ export const encryptStable = async (
   text: string,
   iv: Uint8Array, // length 16,
 ) =>
-  `${base64.encode(
-    new Uint8Array(
-      await crypto.subtle.encrypt(
-        { name: "AES-CBC", iv },
-        await crypto.subtle.importKey(
-          "raw",
-          getSharedSecret(privkey, "02" + pubkey).slice(1, 33),
-          { name: "AES-CBC" },
-          false,
-          ["encrypt"],
+  `${
+    base64.encode(
+      new Uint8Array(
+        await crypto.subtle.encrypt(
+          { name: "AES-CBC", iv },
+          await crypto.subtle.importKey(
+            "raw",
+            getSharedSecret(privkey, "02" + pubkey).slice(1, 33),
+            { name: "AES-CBC" },
+            false,
+            ["encrypt"],
+          ),
+          new TextEncoder().encode(text),
         ),
-        new TextEncoder().encode(text),
       ),
-    ),
-  )}?iv=${base64.encode(new Uint8Array(iv.buffer))}`;
+    )
+  }?iv=${base64.encode(new Uint8Array(iv.buffer))}`;
 
 export const encryptAnonymously = async (
   recipient: PublicKey,
@@ -67,13 +71,13 @@ export const decryptAnonymously = async (
     await nostrTools.nip04.decrypt(secret, anonymousPublicKey, cipher),
   );
 
-// TODO: implement
 export const sign = (secret: SecretKey, message: string): Signature =>
-  message + getPublicKey(secret);
+  utils.bytesToHex(schnorr.signSync(stringEncode(message), secret));
 
-// TODO: implement
 export const verify = (
   publicKey: PublicKey,
   signature: Signature,
   message: string,
-) => message + publicKey === signature;
+) => schnorr.verifySync(signature, stringEncode(message), publicKey);
+
+const stringEncode = (str: string): Uint8Array => new TextEncoder().encode(str);

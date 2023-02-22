@@ -23,8 +23,7 @@ export const union = <T>(x: Array<T>, y: Array<T>): Array<T> =>
   Array.from(new Set([...x, ...y]));
 
 const reducer =
-  <T>(f: (_: T) => number) =>
-  (s: [number, T], x: T): [number, T] => {
+  <T>(f: (_: T) => number) => (s: [number, T], x: T): [number, T] => {
     const [value, elem] = s;
     const currValue = f(x);
     return value < currValue ? [currValue, x] : [value, elem];
@@ -42,21 +41,20 @@ const reduce = <S, T>(
   return state;
 };
 
-export const minBy =
-  <T>(f: (_: T) => number) =>
-  (arr: T[]) => {
-    if (!arr.length) throw "empty array";
-    const x: [number, T] = reduce<[number, T], T>(
-      reducer<T>(f),
-      [Infinity, arr[0]],
-      arr,
-    );
-    return x[1];
-  };
+export const minBy = <T>(f: (_: T) => number) => (arr: T[]) => {
+  if (!arr.length) throw "empty array";
+  const x: [number, T] = reduce<[number, T], T>(
+    reducer<T>(f),
+    [Infinity, arr[0]],
+    arr,
+  );
+  return x[1];
+};
 
 export const permutations = <T>(arr: T[]): T[][] => {
-  if (arr.length <= 2)
+  if (arr.length <= 2) {
     return arr.length === 2 ? [arr, [arr[1], arr[0]]] : [arr];
+  }
   const enumerated: [T, number][] = arr.map((x, i) => [x, i]);
   return reduce(
     (acc: T[][], [item, i]: [T, number]): T[][] =>

@@ -1,13 +1,13 @@
 import {
   AnonymousEncryption,
-  PublicKey,
   decryptAnonymously,
   encryptAnonymously,
   encryptStable,
+  PublicKey,
   sign,
   verify,
 } from "../onion-routing/src/crypto.ts";
-import { SecretKey, getPublicKey } from "../onion-routing/src/crypto.ts";
+import { getPublicKey, SecretKey } from "../onion-routing/src/crypto.ts";
 import { log, minBy, objectSize, union } from "../utils.ts";
 
 import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
@@ -162,9 +162,9 @@ export const handleMessage =
       return [
         (await verifyLikeSignature(me, matchedWith, matchId, signature))
           ? {
-              ...state,
-              myMatches: union(state.myMatches, [matchedWith]),
-            }
+            ...state,
+            myMatches: union(state.myMatches, [matchedWith]),
+          }
           : state,
         [],
       ];

@@ -1,10 +1,10 @@
-import { OnionMessage, handleOnion, wrapOnion } from "./index.ts";
+import { handleOnion, OnionMessage, wrapOnion } from "./index.ts";
 import {
+  generatePrivateKey,
+  getPublicKey,
   PublicKey,
   SecretKey,
   Serializable,
-  generatePrivateKey,
-  getPublicKey,
 } from "./crypto.ts";
 import { range, sample } from "../../utils.ts";
 
