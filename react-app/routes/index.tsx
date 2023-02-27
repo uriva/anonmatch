@@ -1,14 +1,13 @@
 import { useEffect, useState } from "preact/hooks";
 
 import { Head } from "$fresh/runtime.ts";
+import nostrTools from "npm:nostr-tools";
 
+const getPublicKey = nostrTools.getPublicKy;
 const uuid = () => crypto.randomUUID();
 
 type PublicKey = string;
 type SecretKey = string;
-
-const getPublicKey = (secretKey: SecretKey): PublicKey =>
-  "public key for" + secretKey;
 
 type AppEvent = ChatMessage | Decision | LikeAck | ChatAck | Profile | Match;
 type ChatMessage = {
@@ -86,13 +85,21 @@ const ProfileComponent = ({
   );
 };
 
-const Matches = ({ events }: { events: AppEvent[] }) => {
+const Matches = ({
+  events,
+  setChatPeer,
+}: {
+  events: AppEvent[];
+  setChatPeer: (peer: PublicKey) => void;
+}) => {
   const matches = events.filter(({ type }) => type === "match") as Match[];
   return (
     <div>
       <h2>Matches</h2>
-      {matches.map(({ peer }) => (
-        <div>{peer}</div>
+      {matches.map(({ peer }, id) => (
+        <button key={id} onClick={() => setChatPeer(peer)}>
+          {peer}
+        </button>
       ))}
     </div>
   );
@@ -130,6 +137,7 @@ const Chat = ({
   ) as ChatMessage[];
   return (
     <div>
+      <h2>Chat</h2>
       {chats
         .sort((x, y) => x.timestamp - y.timestamp)
         .map(({ sender, text, timestamp }: ChatMessage) => (
@@ -148,6 +156,45 @@ const Chat = ({
       >
         send
       </button>
+    </div>
+  );
+};
+
+const makeProfile = (
+  publicKey: PublicKey,
+  name: string,
+  description: string,
+): Profile => ({
+  type: "profile",
+  description,
+  name,
+  id: uuid(),
+  publicKey,
+  timestamp: getTimestamp(),
+});
+
+const EditMyProfile = ({
+  saveProfile,
+}: {
+  saveProfile: (name: string, description: string) => void;
+}) => {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  return (
+    <div>
+      name:
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName((e.target as HTMLInputElement).value)}
+      />
+      description:
+      <input
+        type="text"
+        value={description}
+        onChange={(e) => setDescription((e.target as HTMLInputElement).value)}
+      />
+      <button onClick={() => saveProfile(name, description)}>Save</button>
     </div>
   );
 };
@@ -176,22 +223,38 @@ export default function Home() {
   // });
 
   // useEffect(() => {}, [tasks]);
-
+  const addEvent = (event: AppEvent) => {
+    // TODO: talk to anonmatch api to register the event externally
+    setEvents([...events, event]);
+  };
   const profile = chooseNextProfile(events);
-  const chatPeer = null;
+  const [chatPeer, setChatPeer] = useState<PublicKey | null>(null);
   return (
     <>
       <Head>
         <title>PeerMatch</title>
       </Head>
-      <Matches events={events} />
+      <Matches
+        events={events}
+        setChatPeer={(peer: PublicKey) => {
+          setChatPeer(peer);
+        }}
+      />
+      <EditMyProfile
+        saveProfile={(name: string, description: string) => {
+          setEvents([
+            ...events,
+            makeProfile(getPublicKey(secretKey), name, description),
+          ]);
+        }}
+      />
       {profile && (
         <ProfileComponent
           like={() => {
-            setEvents([...events, profileToDecision(profile, true)]);
+            addEvent(profileToDecision(profile, true));
           }}
           unlike={() => {
-            setEvents([...events, profileToDecision(profile, false)]);
+            addEvent(profileToDecision(profile, false));
           }}
           profile={profile}
         />
@@ -200,10 +263,7 @@ export default function Home() {
         <Chat
           peer={chatPeer}
           sendChat={(text: string, recipient: PublicKey) => {
-            setEvents([
-              ...events,
-              makeChatEvent(getPublicKey(secretKey), text, recipient),
-            ]);
+            addEvent(makeChatEvent(getPublicKey(secretKey), text, recipient));
           }}
           events={events}
         />
