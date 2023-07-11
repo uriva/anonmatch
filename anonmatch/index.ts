@@ -137,21 +137,15 @@ export const handleMessage =
       ];
     }
     if (type === "like") {
-      const {
-        like: { signature, matchId, likee },
-      } = message;
-      // Register the like.
-      const likesSeen: LikesSeen = {
-        ...state.likesSeen,
-        [matchId]: {
-          ...state.likesSeen[matchId],
-          [signature]: [callbackInfo, likee],
-        },
-      };
+      const { like: { signature, matchId, likee } } = message;
+      const like = setAttr(state.likesSeen[matchId], signature, [
+        callbackInfo,
+        likee,
+      ]);
       return [
-        { ...state, likesSeen },
-        objectSize(likesSeen[matchId]) === 2
-          ? toMatchNoticeMessage(matchId, Object.entries(likesSeen[matchId]))
+        setAttr(state, "likesSeen", setAttr(state.likesSeen, matchId, like)),
+        objectSize(like) === 2
+          ? toMatchNoticeMessage(matchId, Object.entries(like))
           : [],
       ];
     }
