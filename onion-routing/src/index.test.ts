@@ -13,8 +13,6 @@ import { assertEquals } from "https://deno.land/std@0.174.0/testing/asserts.ts";
 Deno.test("test ping pong", async () => {
   const allPeers = range(10).map(() => generatePrivateKey());
   const [alice, bob] = allPeers;
-  const send = (publicKey: PublicKey, message: Serializable) =>
-    publicKeyToHandler[publicKey](message);
   const proxiesFwd: PublicKey[] = sample(3, allPeers).map(getPublicKey);
   const ping = "ping";
   const pong = "pong";
@@ -27,11 +25,15 @@ Deno.test("test ping pong", async () => {
   );
   let aliceGot = 0;
   let bobGot = 0;
-  const publicKeyToHandler = Object.fromEntries(
+  const publicKeyToHandler: Record<
+    PublicKey,
+    (msg: OnionMessage) => Promise<void>
+  > = Object.fromEntries(
     allPeers.map((secretKey: SecretKey) => [
       getPublicKey(secretKey),
       handleOnion(
-        send,
+        (publicKey: PublicKey, message: OnionMessage) =>
+          publicKeyToHandler[publicKey](message),
         (message: Serializable) => {
           if (secretKey === alice) {
             assertEquals(message, pong);

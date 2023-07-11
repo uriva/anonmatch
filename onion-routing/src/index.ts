@@ -42,7 +42,7 @@ const buildRoute = async ([head, ...tail]: PublicKey[]): Promise<Route> => {
 };
 
 export const handleOnion = (
-  send: (pk: number, message: Serializable) => void,
+  send: (pk: PublicKey, message: OnionMessage) => void,
   process: (message: Serializable) => Serializable,
   privateKey: SecretKey,
   getBurnerSecret: (pk: PublicKey) => SecretKey,
@@ -53,15 +53,16 @@ async ({
   bwdRoute,
   request,
   response,
-}: OnionMessage) => {
+}: OnionMessage): Promise<void> => {
   if (!bwdRoute) {
     if (!response) {
       console.error("expected a response");
       return;
     }
-    return process(
+    await process(
       await decryptAnonymously(getBurnerSecret(responsePublicKey), response),
     );
+    return;
   }
   if (fwdRoute) {
     const { head, tail }: Route = await decryptRoute(privateKey, fwdRoute);

@@ -1,3 +1,5 @@
+import * as nostrTools from "npm:nostr-tools";
+
 import {
   AnonymousEncryption,
   decryptAnonymously,
@@ -11,7 +13,6 @@ import { getPublicKey, SecretKey } from "../onion-routing/src/crypto.ts";
 import { log, minBy, objectSize, union } from "../utils.ts";
 
 import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
-import nostrTools from "npm:nostr-tools";
 
 export type CallbackInfo = {};
 type MatchId = string;
@@ -158,14 +159,17 @@ export const handleMessage =
       const {
         like: { matchId, signature, likee },
       } = message;
-      const matchedWith = await decryptAnonymously(me, likee);
+      const matchedWith = await decryptAnonymously(me, likee) as PublicKey;
       return [
-        (await verifyLikeSignature(me, matchedWith, matchId, signature))
-          ? {
-            ...state,
-            myMatches: union(state.myMatches, [matchedWith]),
-          }
-          : state,
+        await verifyLikeSignature(me, matchedWith, matchId, signature).then(
+          (result) =>
+            result
+              ? {
+                ...state,
+                myMatches: union<PublicKey>(state.myMatches, [matchedWith]),
+              }
+              : state,
+        ),
         [],
       ];
     }

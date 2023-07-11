@@ -97,7 +97,10 @@ const Matches = ({
     <div>
       <h2>Matches</h2>
       {matches.map(({ peer }, id) => (
-        <button key={id} onClick={() => setChatPeer(peer)}>
+        <button
+          key={id}
+          onClick={() => setChatPeer(peer)}
+        >
           {peer}
         </button>
       ))}
