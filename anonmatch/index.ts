@@ -2,15 +2,15 @@ import * as nostrTools from "npm:nostr-tools";
 
 import {
   AnonymousEncryption,
+  PublicKey,
   decryptAnonymously,
   encryptAnonymously,
   encryptStable,
-  PublicKey,
   sign,
   verify,
 } from "../onion-routing/src/crypto.ts";
-import { getPublicKey, SecretKey } from "../onion-routing/src/crypto.ts";
-import { log, minBy, objectSize, union } from "../utils.ts";
+import { SecretKey, getPublicKey } from "../onion-routing/src/crypto.ts";
+import { log, minBy, objectSize, setAttr, union } from "../utils.ts";
 
 import { levenshteinEditDistance } from "npm:levenshtein-edit-distance";
 
@@ -132,7 +132,7 @@ export const handleMessage =
     const { type } = message;
     if (type === "peers-notice") {
       return [
-        { ...state, peersKnown: union(state.peersKnown, message.peers) },
+        setAttr(state, "peersKnown", union(state.peersKnown, message.peers)),
         [],
       ];
     }

@@ -6,6 +6,15 @@ export const range = (n: number) => {
   return result;
 };
 
+export const setAttr = <T, K extends keyof T>(
+  obj: T,
+  key: K,
+  value: T[K],
+) => ({
+  ...obj,
+  [key]: value,
+});
+
 export const last = <Element>(arr: Element[]) => arr[arr.length - 1];
 
 export const sample = <T>(n: number, array: Array<T>) =>
