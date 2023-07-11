@@ -158,10 +158,11 @@ export const handleMessage =
         await verifyLikeSignature(me, matchedWith, matchId, signature).then(
           (result) =>
             result
-              ? {
-                ...state,
-                myMatches: union<PublicKey>(state.myMatches, [matchedWith]),
-              }
+              ? setAttr(
+                state,
+                "myMatches",
+                union(state.myMatches, [matchedWith]),
+              )
               : state,
         ),
         [],
